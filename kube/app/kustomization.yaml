@@ -1,0 +1,7 @@
+resources:
+  - namespace.yaml
+  - cronjob.yaml
+
+images:
+  - name: ghcr.io/YOUR_ORG/s3-random-writer
+    newTag: 0.0.1

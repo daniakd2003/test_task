@@ -1,0 +1,98 @@
+- name: Bootstrap single-node k3s
+  hosts: k3s
+  become: true
+  vars:
+    k3s_channel: "stable"
+    kubeconfig_user: "ubuntu"
+    kubeconfig_path: "/home/ubuntu/.kube/config"
+
+  tasks:
+    - name: Install base packages
+      apt:
+        update_cache: true
+        name:
+          - curl
+          - ca-certificates
+          - jq
+        state: present
+
+    - name: Install k3s (server)
+      shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL={{ k3s_channel }} sh -
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Enable and start k3s
+      systemd:
+        name: k3s
+        enabled: true
+        state: started
+
+    # ---- FIX: make API cert valid for public IP ----
+    - name: Ensure k3s config dir exists
+      file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: "0755"
+
+    - name: Configure k3s TLS SAN (public IP)
+      copy:
+        dest: /etc/rancher/k3s/config.yaml
+        mode: "0644"
+        content: |
+          tls-san:
+            - "{{ ansible_host }}"
+
+    - name: Restart k3s to apply TLS SAN
+      systemd:
+        name: k3s
+        state: restarted
+
+    - name: Wait for k3s API to be ready after restart
+      shell: |
+        k3s kubectl get --raw=/readyz >/dev/null
+      register: readyz
+      retries: 60
+      delay: 2
+      until: readyz.rc == 0
+      changed_when: false
+
+    - name: Wait for k3s node to be Ready
+      shell: |
+        kubectl get nodes --no-headers | awk '{print $2}' | head -n1
+      register: node_status
+      retries: 60
+      delay: 5
+      until: node_status.stdout.strip() == "Ready"
+      changed_when: false
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+    - name: Ensure .kube directory for user
+      file:
+        path: "/home/{{ kubeconfig_user }}/.kube"
+        state: directory
+        owner: "{{ kubeconfig_user }}"
+        group: "{{ kubeconfig_user }}"
+        mode: "0700"
+
+    - name: Copy kubeconfig to user home
+      copy:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: "{{ kubeconfig_path }}"
+        remote_src: true
+        owner: "{{ kubeconfig_user }}"
+        group: "{{ kubeconfig_user }}"
+        mode: "0600"
+
+    - name: Replace server address in kubeconfig (use public IP)
+      replace:
+        path: "{{ kubeconfig_path }}"
+        regexp: 'server: https://127\.0\.0\.1:6443'
+        replace: "server: https://{{ ansible_host }}:6443"
+
+    - name: Download kubeconfig to local machine
+      fetch:
+        src: "{{ kubeconfig_path }}"
+        dest: ./kubeconfig
+        flat: true

@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: s3-random-writer
+  namespace: random-writer
+spec:
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: writer
+              image: s3-random-writer:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: AWS_REGION
+                  value: eu-central-1
+                - name: S3_BUCKET
+                  value: REPLACE_ME_BUCKET
+                - name: S3_PREFIX
+                  value: random

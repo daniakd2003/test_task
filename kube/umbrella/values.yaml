@@ -1,0 +1,22 @@
+argo-cd:
+  fullnameOverride: argocd
+  
+  redis-ha:
+    enabled: false
+
+  controller:
+    replicas: 1
+
+  server:
+    replicas: 1
+    service:
+      type: ClusterIP
+
+  repoServer:
+    replicas: 1
+
+  applicationSet:
+    enabled: true
+
+  notifications:
+    enabled: false
