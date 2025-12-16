@@ -22,7 +22,7 @@ jobs:
       - name: Read version
         id: version
         run: |
-          VERSION=$(cat app/VERSION.txt)
+          VERSION=$(cat app/VERSION.TXT)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Login to GHCR
