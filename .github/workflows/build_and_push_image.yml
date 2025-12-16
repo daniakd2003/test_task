@@ -22,8 +22,12 @@ jobs:
       - name: Read version
         id: version
         run: |
-          VERSION=$(cat app/VERSION.TXT)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          VERSION="$(cat app/VERSION.TXT | tr -d ' \n\r\t')"
+          if [ -z "$VERSION" ]; then
+            echo "VERSION.TXT is empty"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -46,18 +50,32 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
 
-      - name: Update image tag in kustomization.yaml
+      - name: Update image tag in kube/app/kustomization.yaml
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          IMAGE_NAME: ghcr.io/${{ github.repository }}/s3-random-writer
         run: |
           yq -i '
-            (.images[] | select(.name == "ghcr.io/${{ github.repository }}/random-writer") | .newTag)
-            = "${{ steps.version.outputs.version }}"
+            (.images[] | select(.name == strenv(IMAGE_NAME)) | .newTag) = strenv(VERSION)
           ' kube/app/kustomization.yaml
 
+          echo "Updated file:"
+          cat kube/app/kustomization.yaml
+
       - name: Commit and push updated tag
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
           git add kube/app/kustomization.yaml
-          git commit -m "chore: update random-writer image tag to ${{ steps.version.outputs.version }}"
+
+          # commit only if something changed
+          if git diff --cached --quiet; then
+            echo "No changes to commit (tag already up to date)"
+            exit 0
+          fi
+
+          git commit -m "chore: update s3-random-writer image tag to $VERSION"
           git push
