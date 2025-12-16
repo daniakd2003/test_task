@@ -15,7 +15,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: writer
-              image: ghcr.io/YOUR_ORG/s3-random-writer
+              image: ghcr.io/daniakd2003/s3-random-writer
               imagePullPolicy: IfNotPresent
               env:
                 - name: AWS_REGION
