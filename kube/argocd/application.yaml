@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: random-writer
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/daniakd2003/test_task.git
+    targetRevision: main
+    path: kube/app
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: random-writer
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
