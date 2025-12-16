@@ -4,4 +4,4 @@ resources:
   - cronjob.yaml
 images:
   - name: ghcr.io/daniakd2003/test_task/s3-random-writer
-    newTag: 0.0.1
+    newTag: 0.0.4
