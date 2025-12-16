@@ -5,9 +5,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY app/requirements.txt /app/requirements.txt
+COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/main.py /app/main.py
+COPY main.py /app/main.py
 
 CMD ["python", "/app/main.py"]
