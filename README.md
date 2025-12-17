@@ -8,7 +8,7 @@ Structure
 # Structure
 
 
-```http
+```shell
 ├── ansible # Ansible used to create k3s cluster
 │   ├── ansible.cfg
 │   ├── k3s.yml
